@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>미니멀 인터벌 타이머 - Minimal Interval Timer</title>
+  <meta name="description" content="Sophisticated Dark 스타일의 운동 및 집중용 미니멀 인터벌 타이머" />
+  <meta property="og:title" content="미니멀 인터벌 타이머" />
+  <meta property="og:description" content="Sophisticated Dark 스타일의 운동 및 집중용 미니멀 인터벌 타이머" />
+  <meta property="og:type" content="website" />
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bg: '#09090b',
+            fg: '#fafafa',
+            muted: '#71717a',
+            border: '#27272a',
+            ringBg: '#18181b',
+            work: '#10b981',
+            rest: '#f97316',
+            prep: '#38bdf8',
+            done: '#a855f7'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          },
+          letterSpacing: {
+            widest: '0.25em',
+            ultra: '0.35em'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg: #09090b;
+      --fg: #fafafa;
+      --muted: #71717a;
+      --accent-work: #10b981;
+      --accent-rest: #f97316;
+      --accent-prep: #38bdf8;
+      --accent-done: #a855f7;
+      --border: #27272a;
+      --ring-bg: #18181b;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .tabular-numbers {
+      font-variant-numeric: tabular-nums;
+    }
+    /* SVG Circle progress transition */
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.15s linear, stroke 0.4s ease;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    /* Sophisticated Dark range slider styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      border-radius: 9999px;
+      background: var(--border);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--fg);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
+      transition: transform 0.15s ease, background-color 0.2s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--fg);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
+    }
+    .btn-press:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#09090b] text-[#fafafa] flex flex-col items-center justify-between p-3 sm:p-6 lg:p-8 select-none relative overflow-x-hidden">
+
+  <!-- Ambient Dynamic Background Glow (Sophisticated subtle bleed) -->
+  <div id="ambient-glow" class="fixed inset-0 pointer-events-none transition-colors duration-1000 opacity-20 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/20 via-transparent to-transparent"></div>
+
+  <!-- Top Header Navigation -->
+  <header id="main-header" class="w-full max-w-5xl flex items-center justify-between py-3 px-2 border-b border-[#27272a] mb-2 sm:mb-6">
+    <div class="flex items-center gap-3">
+      <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981] transition-all duration-500"></div>
+      <div>
+        <h1 class="text-sm sm:text-base font-semibold tracking-tighter text-[#fafafa] flex items-center gap-2">
+          <span>INTERVAL</span>
+          <span class="text-[10px] sm:text-xs text-[#71717a] font-mono tracking-widest uppercase">SYSTEM v1.0</span>
+        </h1>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <!-- Sound toggle button -->
+      <button id="btn-sound-toggle" class="p-2 rounded-lg text-[#71717a] hover:text-[#fafafa] hover:bg-[#18181b] border border-transparent hover:border-[#27272a] transition-all btn-press" title="소리 켜기/끄기 (M)">
+        <svg id="icon-sound-on" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"/>
+        </svg>
+        <svg id="icon-sound-off" class="w-4 h-4 hidden text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+        </svg>
+      </button>
+
+      <!-- Quick Preset Dropdown/Button -->
+      <button id="btn-preset-toggle" class="px-3 py-1.5 rounded-lg text-xs font-medium uppercase tracking-widest text-[#a1a1aa] bg-[#121215] hover:bg-[#18181b] hover:text-[#fafafa] border border-[#27272a] transition-all btn-press flex items-center gap-1.5">
+        <span>프리셋</span>
+        <svg class="w-3 h-3 text-[#71717a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+
+      <!-- Fullscreen button -->
+      <button id="btn-fullscreen" class="p-2 rounded-lg text-[#71717a] hover:text-[#fafafa] hover:bg-[#18181b] border border-transparent hover:border-[#27272a] transition-all btn-press hidden sm:flex" title="전체화면 전환">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Preset Modal / Drawer -->
+  <div id="preset-menu" class="hidden w-full max-w-5xl bg-[#121215] border border-[#27272a] rounded-xl p-4 mb-4 shadow-2xl transition-all duration-200">
+    <div class="flex items-center justify-between pb-2 mb-3 border-b border-[#27272a]">
+      <span class="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#71717a]">추천 인터벌 프리셋</span>
+      <button id="btn-close-presets" class="text-[#71717a] hover:text-[#fafafa] text-xs transition-colors">닫기 ✕</button>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <button onclick="applyPreset(20, 10, 8, 5, '타바타 (Tabata)')" class="p-3 rounded-lg bg-[#09090b] hover:border-emerald-500/60 border border-[#27272a] text-left transition-all btn-press group">
+        <div class="text-xs font-semibold text-emerald-400 group-hover:text-emerald-300">타바타 (20/10)</div>
+        <div class="text-[11px] text-[#a1a1aa] mt-0.5">20초 운동 / 10초 휴식</div>
+        <div class="text-[10px] text-[#71717a] font-mono mt-1">8세트 · 4분 코스</div>
+      </button>
+      <button onclick="applyPreset(45, 15, 6, 5, 'HIIT 인터벌')" class="p-3 rounded-lg bg-[#09090b] hover:border-sky-500/60 border border-[#27272a] text-left transition-all btn-press group">
+        <div class="text-xs font-semibold text-sky-400 group-hover:text-sky-300">HIIT (45/15)</div>
+        <div class="text-[11px] text-[#a1a1aa] mt-0.5">45초 운동 / 15초 휴식</div>
+        <div class="text-[10px] text-[#71717a] font-mono mt-1">6세트 · 6분 코스</div>
+      </button>
+      <button onclick="applyPreset(30, 30, 5, 3, '베이직 피트니스')" class="p-3 rounded-lg bg-[#09090b] hover:border-orange-500/60 border border-[#27272a] text-left transition-all btn-press group">
+        <div class="text-xs font-semibold text-orange-400 group-hover:text-orange-300">베이직 (30/30)</div>
+        <div class="text-[11px] text-[#a1a1aa] mt-0.5">30초 운동 / 30초 휴식</div>
+        <div class="text-[10px] text-[#71717a] font-mono mt-1">5세트 · 5분 코스</div>
+      </button>
+      <button onclick="applyPreset(1500, 300, 4, 0, '뽀모도로 집중')" class="p-3 rounded-lg bg-[#09090b] hover:border-purple-500/60 border border-[#27272a] text-left transition-all btn-press group">
+        <div class="text-xs font-semibold text-purple-400 group-hover:text-purple-300">뽀모도로 집중</div>
+        <div class="text-[11px] text-[#a1a1aa] mt-0.5">25분 집중 / 5분 휴식</div>
+        <div class="text-[10px] text-[#71717a] font-mono mt-1">4세트 · 2시간 코스</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Responsive Layout (Two-Column on Large Screens, Centered Stack on Mobile) -->
+  <main class="w-full max-w-5xl flex-1 flex flex-col lg:grid lg:grid-cols-[1fr_360px] lg:gap-10 lg:items-center py-2 sm:py-6">
+
+    <!-- Left Stage: Timer Display & Controls -->
+    <div class="flex flex-col items-center justify-center relative order-1">
+      
+      <!-- Status Indicator (Sophisticated Dark uppercase tracked label) -->
+      <div id="status-badge-container" class="mb-4">
+        <div id="status-badge" class="flex items-center gap-2.5 text-xs font-medium uppercase tracking-[0.35em] text-emerald-400 transition-all duration-300">
+          <span id="status-icon" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]"></span>
+          <span id="status-text">운동 준비 (READY)</span>
+        </div>
+      </div>
+
+      <!-- Precision Minimalist Circular Progress Timer -->
+      <div class="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-[380px] lg:h-[380px] flex items-center justify-center my-2 sm:my-4">
+        
+        <!-- Ambient Radial Glow Behind Ring -->
+        <div id="timer-glow" class="absolute w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full bg-emerald-500/10 blur-3xl transition-all duration-700 pointer-events-none"></div>
+
+        <!-- SVG Circular Progress (Sophisticated 4px laser stroke) -->
+        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 280 280">
+          <!-- Background Ring Track (Zinc-900 #18181b) -->
+          <circle
+            class="ring-bg"
+            cx="140"
+            cy="140"
+            r="115"
+            fill="none"
+            stroke="#18181b"
+            stroke-width="4"
+          />
+          <!-- Active Animated Precision Track -->
+          <circle
+            id="progress-circle"
+            class="progress-ring-circle"
+            cx="140"
+            cy="140"
+            r="115"
+            fill="none"
+            stroke="#10b981"
+            stroke-width="4"
+            stroke-dasharray="722.56"
+            stroke-dashoffset="0"
+          />
+        </svg>
+
+        <!-- Center Display Inside Circle (Sophisticated Dark Typography: Ultra-light time, tracked labels) -->
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+          
+          <!-- Phase Subtitle -->
+          <div id="phase-label" class="text-[10px] sm:text-xs font-semibold tracking-[0.25em] text-[#71717a] uppercase mb-1 transition-colors duration-300">
+            WORK TIME
+          </div>
+
+          <!-- Giant Sophisticated Time Display (font-weight: 200, tabular, crisp) -->
+          <div id="timer-display" class="text-6xl sm:text-7xl lg:text-8xl font-extralight tracking-tight text-[#fafafa] font-sans tabular-numbers transition-transform duration-100">
+            00:30
+          </div>
+
+          <!-- Set Count Display -->
+          <div class="mt-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-[#71717a]">
+            <span>SET</span>
+            <span id="current-set-display" class="text-[#fafafa] font-bold font-mono">1</span>
+            <span class="text-[#3f3f46]">/</span>
+            <span id="total-sets-display" class="text-[#a1a1aa] font-mono">5</span>
+          </div>
+
+          <!-- Visual Set Progress Dots -->
+          <div id="set-dots" class="flex items-center gap-1.5 mt-3 max-w-[180px] flex-wrap justify-center">
+            <!-- Populated by JS -->
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Overall Workout Progress Bar -->
+      <div class="w-full max-w-xs sm:max-w-sm px-2 mt-2 mb-4">
+        <div class="flex justify-between text-[10px] uppercase tracking-widest text-[#71717a] mb-1.5 font-mono">
+          <span>PROGRESS <span id="total-progress-percent" class="text-[#fafafa] ml-1">0%</span></span>
+          <span>REMAINING <span id="total-remaining-display" class="text-[#fafafa] ml-1">02:30</span></span>
+        </div>
+        <div class="w-full h-1 bg-[#18181b] rounded-full overflow-hidden">
+          <div id="total-progress-bar" class="h-full bg-emerald-500 transition-all duration-300 rounded-full" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Main Action Buttons (Sophisticated Dark: High-contrast white primary button, minimal border secondary buttons) -->
+      <div class="flex items-center justify-center gap-2.5 sm:gap-3 my-2">
+        
+        <!-- Skip Previous Button -->
+        <button id="btn-prev-set" class="p-3 rounded-lg bg-transparent hover:bg-[#18181b] text-[#71717a] hover:text-[#fafafa] border border-[#27272a] transition-all btn-press" title="이전 세트로 이동">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+          </svg>
+        </button>
+
+        <!-- Primary Start / Pause Toggle -->
+        <button id="btn-play-pause" class="px-8 sm:px-10 py-3 rounded-lg font-bold text-xs sm:text-sm uppercase tracking-[0.2em] flex items-center gap-2.5 text-[#09090b] bg-[#fafafa] hover:bg-white transition-all duration-150 btn-press shadow-[0_0_20px_rgba(255,255,255,0.12)]">
+          <!-- Play Icon -->
+          <svg id="icon-play" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <!-- Pause Icon -->
+          <svg id="icon-pause" class="w-4 h-4 fill-current hidden" viewBox="0 0 24 24">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          </svg>
+          <span id="play-btn-text">시작</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button id="btn-reset" class="p-3 rounded-lg bg-transparent hover:bg-[#18181b] text-[#71717a] hover:text-[#fafafa] border border-[#27272a] transition-all btn-press" title="처음으로 리셋 (R)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+
+        <!-- Skip Next Button -->
+        <button id="btn-next-set" class="p-3 rounded-lg bg-transparent hover:bg-[#18181b] text-[#71717a] hover:text-[#fafafa] border border-[#27272a] transition-all btn-press" title="다음 세트 / 단계로 이동">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
+          </svg>
+        </button>
+        
+      </div>
+
+    </div>
+
+    <!-- Right Sidebar / Settings Panel (Architectural Studio layout) -->
+    <aside class="w-full mt-6 lg:mt-0 bg-[#09090b] lg:bg-[#121215]/60 border border-[#27272a] rounded-xl p-4 sm:p-5 order-2">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-[#27272a] mb-4">
+        <h2 class="text-[10px] sm:text-xs font-semibold tracking-[0.25em] text-[#71717a] uppercase flex items-center gap-2">
+          <span>인터벌 파라미터</span>
+        </h2>
+        <span class="text-[10px] font-mono text-[#52525b] uppercase">CUSTOM</span>
+      </div>
+
+      <div class="space-y-4">
+
+        <!-- 1. Work Time Control -->
+        <div class="bg-[#121215] lg:bg-[#09090b] rounded-lg p-3.5 border border-[#27272a]">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">운동 (Work)</span>
+            </div>
+            <span id="work-time-label" class="text-xs sm:text-sm font-semibold font-mono text-emerald-400 tabular-numbers">00:30</span>
+          </div>
+
+          <div class="flex items-center gap-2.5 mt-2">
+            <button onclick="adjustWorkTime(-5)" class="w-6 h-6 rounded bg-[#18181b] hover:bg-[#27272a] text-[10px] font-mono text-[#a1a1aa] hover:text-[#fafafa] flex items-center justify-center btn-press">-5</button>
+            <input
+              id="slider-work-time"
+              type="range"
+              min="5"
+              max="300"
+              step="5"
+              value="30"
+              class="flex-1"
+            />
+            <button onclick="adjustWorkTime(5)" class="w-6 h-6 rounded bg-[#18181b] hover:bg-[#27272a] text-[10px] font-mono text-[#a1a1aa] hover:text-[#fafafa] flex items-center justify-center btn-press">+5</button>
+          </div>
+          
+          <div class="flex justify-between text-[9px] text-[#52525b] font-mono uppercase tracking-wider mt-1.5">
+            <span>5s</span>
+            <span>300s</span>
+          </div>
+        </div>
+
+        <!-- 2. Rest Time Control -->
+        <div class="bg-[#121215] lg:bg-[#09090b] rounded-lg p-3.5 border border-[#27272a]">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">휴식 (Rest)</span>
+            </div>
+            <span id="rest-time-label" class="text-xs sm:text-sm font-semibold font-mono text-orange-400 tabular-numbers">00:15</span>
+          </div>
+
+          <div class="flex items-center gap-2.5 mt-2">
+            <button onclick="adjustRestTime(-5)" class="w-6 h-6 rounded bg-[#18181b] hover:bg-[#27272a] text-[10px] font-mono text-[#a1a1aa] hover:text-[#fafafa] flex items-center justify-center btn-press">-5</button>
+            <input
+              id="slider-rest-time"
+              type="range"
+              min="0"
+              max="180"
+              step="5"
+              value="15"
+              class="flex-1"
+            />
+            <button onclick="adjustRestTime(5)" class="w-6 h-6 rounded bg-[#18181b] hover:bg-[#27272a] text-[10px] font-mono text-[#a1a1aa] hover:text-[#fafafa] flex items-center justify-center btn-press">+5</button>
+          </div>
+
+          <div class="flex justify-between text-[9px] text-[#52525b] font-mono uppercase tracking-wider mt-1.5">
+            <span>0s</span>
+            <span>180s</span>
+          </div>
+        </div>
+
+        <!-- 3. Total Sets Control -->
+        <div class="bg-[#121215] lg:bg-[#09090b] rounded-lg p-3.5 border border-[#27272a]">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#fafafa]"></span>
+              <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">반복 세트 (Sets)</span>
+            </div>
+            <span id="sets-label" class="text-xs sm:text-sm font-semibold font-mono text-[#fafafa] tabular-numbers">5 세트</span>
+          </div>
+
+          <div class="flex items-center gap-2.5 mt-2">
+            <button onclick="adjustSets(-1)" class="w-6 h-6 rounded bg-[#18181b] hover:bg-[#27272a] text-[10px] font-mono text-[#a1a1aa] hover:text-[#fafafa] flex items-center justify-center btn-press">-1</button>
+            <input
+              id="slider-sets"
+              type="range"
+              min="1"
+              max="30"
+              step="1"
+              value="5"
+              class="flex-1"
+            />
+            <button onclick="adjustSets(1)" class="w-6 h-6 rounded bg-[#18181b] hover:bg-[#27272a] text-[10px] font-mono text-[#a1a1aa] hover:text-[#fafafa] flex items-center justify-center btn-press">+1</button>
+          </div>
+
+          <div class="flex justify-between text-[9px] text-[#52525b] font-mono uppercase tracking-wider mt-1.5">
+            <span>1</span>
+            <span>30</span>
+          </div>
+        </div>
+
+        <!-- 4. Preparation Time Control -->
+        <div class="bg-[#121215] lg:bg-[#09090b] rounded-lg p-3.5 border border-[#27272a]">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">준비 카운트 (Prep)</span>
+            <span id="prep-time-label" class="text-xs sm:text-sm font-semibold font-mono text-sky-400 tabular-numbers">3초</span>
+          </div>
+
+          <div class="grid grid-cols-4 gap-1.5 mt-2">
+            <button onclick="setPrepTime(0)" class="prep-btn py-1.5 rounded bg-[#18181b] text-[10px] font-mono font-medium text-[#71717a] border border-transparent hover:border-[#27272a] hover:text-[#fafafa] btn-press" data-time="0">0s</button>
+            <button onclick="setPrepTime(3)" class="prep-btn py-1.5 rounded bg-[#18181b] text-[10px] font-mono font-medium text-sky-400 border border-sky-500/50 btn-press" data-time="3">3s</button>
+            <button onclick="setPrepTime(5)" class="prep-btn py-1.5 rounded bg-[#18181b] text-[10px] font-mono font-medium text-[#71717a] border border-transparent hover:border-[#27272a] hover:text-[#fafafa] btn-press" data-time="5">5s</button>
+            <button onclick="setPrepTime(10)" class="prep-btn py-1.5 rounded bg-[#18181b] text-[10px] font-mono font-medium text-[#71717a] border border-transparent hover:border-[#27272a] hover:text-[#fafafa] btn-press" data-time="10">10s</button>
+          </div>
+        </div>
+
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Bottom Shortcut Hints & Footer -->
+  <footer class="w-full max-w-5xl text-center py-3 text-[10px] font-mono text-[#52525b] uppercase tracking-widest flex items-center justify-between px-2 border-t border-[#27272a] mt-4">
+    <div class="flex items-center gap-3">
+      <span><kbd class="px-1.5 py-0.5 rounded bg-[#18181b] text-[#a1a1aa] font-mono border border-[#27272a]">Space</kbd> Start / Pause</span>
+      <span><kbd class="px-1.5 py-0.5 rounded bg-[#18181b] text-[#a1a1aa] font-mono border border-[#27272a]">R</kbd> Reset</span>
+      <span><kbd class="px-1.5 py-0.5 rounded bg-[#18181b] text-[#a1a1aa] font-mono border border-[#27272a]">M</kbd> Mute</span>
+    </div>
+    <div class="text-[#3f3f46]">
+      STASIS · SOPHISTICATED DARK
+    </div>
+  </footer>
+
+  <!-- Complete Standalone JavaScript -->
+  <script>
+    /* ==========================================================
+     * Minimal Interval Timer - Sophisticated Dark Engine
+     * ========================================================== */
+
+    // 1. Audio Synthesizer via Web Audio API
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+      }
+
+      initContext() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type = 'sine', duration = 0.08, gainLevel = 0.12) {
+        if (this.isMuted) return;
+        this.initContext();
+        if (!this.ctx) return;
+
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+          gain.gain.setValueAtTime(gainLevel, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {
+          console.warn('Audio playback error', e);
+        }
+      }
+
+      // 3, 2, 1 Countdown Beep
+      playCountdownTick() {
+        this.playTone(880, 'sine', 0.09, 0.15); // A5 note
+      }
+
+      // Transition to WORK
+      playWorkStart() {
+        if (this.isMuted) return;
+        this.initContext();
+        if (!this.ctx) return;
+        try {
+          this.playTone(587.33, 'triangle', 0.12, 0.18);
+          setTimeout(() => {
+            this.playTone(880, 'sine', 0.25, 0.2);
+          }, 100);
+        } catch (e) {}
+      }
+
+      // Transition to REST
+      playRestStart() {
+        if (this.isMuted) return;
+        this.initContext();
+        if (!this.ctx) return;
+        try {
+          this.playTone(659.25, 'sine', 0.12, 0.18);
+          setTimeout(() => {
+            this.playTone(440, 'triangle', 0.25, 0.18);
+          }, 110);
+        } catch (e) {}
+      }
+
+      // Workout Finished Fanfare
+      playComplete() {
+        if (this.isMuted) return;
+        this.initContext();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => {
+            this.playTone(freq, 'sine', idx === 3 ? 0.6 : 0.15, 0.22);
+          }, idx * 130);
+        });
+      }
+
+      toggleMute() {
+        this.isMuted = !this.isMuted;
+        return this.isMuted;
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    // 2. Timer State Model
+    const TimerPhases = {
+      IDLE: 'IDLE',
+      PREP: 'PREP',
+      WORK: 'WORK',
+      REST: 'REST',
+      DONE: 'DONE'
+    };
+
+    let settings = {
+      workSeconds: 30,
+      restSeconds: 15,
+      totalSets: 5,
+      prepSeconds: 3
+    };
+
+    let state = {
+      isRunning: false,
+      currentPhase: TimerPhases.IDLE,
+      currentSet: 1,
+      secondsRemaining: 30,
+      phaseTotalSeconds: 30,
+      timerInterval: null,
+      lastTickTime: null
+    };
+
+    // DOM Elements
+    const elements = {
+      // Buttons
+      btnPlayPause: document.getElementById('btn-play-pause'),
+      playBtnText: document.getElementById('play-btn-text'),
+      iconPlay: document.getElementById('icon-play'),
+      iconPause: document.getElementById('icon-pause'),
+      btnReset: document.getElementById('btn-reset'),
+      btnPrevSet: document.getElementById('btn-prev-set'),
+      btnNextSet: document.getElementById('btn-next-set'),
+      btnSoundToggle: document.getElementById('btn-sound-toggle'),
+      iconSoundOn: document.getElementById('icon-sound-on'),
+      iconSoundOff: document.getElementById('icon-sound-off'),
+      btnPresetToggle: document.getElementById('btn-preset-toggle'),
+      presetMenu: document.getElementById('preset-menu'),
+      btnClosePresets: document.getElementById('btn-close-presets'),
+      btnFullscreen: document.getElementById('btn-fullscreen'),
+
+      // Display
+      timerDisplay: document.getElementById('timer-display'),
+      phaseLabel: document.getElementById('phase-label'),
+      currentSetDisplay: document.getElementById('current-set-display'),
+      totalSetsDisplay: document.getElementById('total-sets-display'),
+      setDotsContainer: document.getElementById('set-dots'),
+      statusBadge: document.getElementById('status-badge'),
+      statusText: document.getElementById('status-text'),
+      statusIcon: document.getElementById('status-icon'),
+      statusDot: document.getElementById('status-dot'),
+      progressCircle: document.getElementById('progress-circle'),
+      timerGlow: document.getElementById('timer-glow'),
+      ambientGlow: document.getElementById('ambient-glow'),
+      totalProgressBar: document.getElementById('total-progress-bar'),
+      totalProgressPercent: document.getElementById('total-progress-percent'),
+      totalRemainingDisplay: document.getElementById('total-remaining-display'),
+
+      // Sliders & Controls
+      sliderWorkTime: document.getElementById('slider-work-time'),
+      sliderRestTime: document.getElementById('slider-rest-time'),
+      sliderSets: document.getElementById('slider-sets'),
+      workTimeLabel: document.getElementById('work-time-label'),
+      restTimeLabel: document.getElementById('rest-time-label'),
+      setsLabel: document.getElementById('sets-label'),
+      prepTimeLabel: document.getElementById('prep-time-label')
+    };
+
+    // Circle Circumference for 115px radius: 2 * Math.PI * 115 ≈ 722.56
+    const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 115;
+    elements.progressCircle.style.strokeDasharray = `${CIRCLE_CIRCUMFERENCE}`;
+    elements.progressCircle.style.strokeDashoffset = '0';
+
+    // Format seconds to MM:SS
+    function formatTime(totalSecs) {
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    // Render set dots
+    function renderSetDots() {
+      elements.setDotsContainer.innerHTML = '';
+      const total = settings.totalSets;
+      const current = state.currentSet;
+
+      if (total <= 16) {
+        for (let i = 1; i <= total; i++) {
+          const dot = document.createElement('div');
+          dot.className = 'w-1.5 h-1.5 rounded-full transition-all duration-300';
+          if (i < current || (state.currentPhase === TimerPhases.DONE)) {
+            dot.className += ' bg-emerald-400 shadow-[0_0_6px_#10b981]';
+          } else if (i === current && state.currentPhase !== TimerPhases.IDLE) {
+            if (state.currentPhase === TimerPhases.WORK) {
+              dot.className += ' bg-emerald-300 scale-125 shadow-[0_0_8px_#10b981] animate-pulse';
+            } else if (state.currentPhase === TimerPhases.REST) {
+              dot.className += ' bg-orange-400 scale-125 shadow-[0_0_8px_#f97316]';
+            } else {
+              dot.className += ' bg-sky-400 scale-125';
+            }
+          } else {
+            dot.className += ' bg-[#27272a]';
+          }
+          elements.setDotsContainer.appendChild(dot);
+        }
+      } else {
+        const span = document.createElement('span');
+        span.className = 'text-[10px] text-[#71717a] font-mono tracking-wider';
+        span.textContent = `ROUND ${state.currentSet} / ${total}`;
+        elements.setDotsContainer.appendChild(span);
+      }
+    }
+
+    // Calculate total remaining workout time
+    function calculateTotalRemaining() {
+      if (state.currentPhase === TimerPhases.DONE) return 0;
+      if (state.currentPhase === TimerPhases.IDLE) {
+        return (settings.workSeconds + settings.restSeconds) * settings.totalSets - (settings.restSeconds > 0 ? settings.restSeconds : 0) + settings.prepSeconds;
+      }
+
+      let remaining = state.secondsRemaining;
+      
+      if (state.currentPhase === TimerPhases.PREP) {
+        remaining += (settings.workSeconds + settings.restSeconds) * settings.totalSets - (settings.restSeconds > 0 ? settings.restSeconds : 0);
+      } else if (state.currentPhase === TimerPhases.WORK) {
+        if (state.currentSet < settings.totalSets) {
+          remaining += settings.restSeconds;
+        }
+        const remainingSets = settings.totalSets - state.currentSet;
+        remaining += remainingSets * (settings.workSeconds + settings.restSeconds);
+        if (remainingSets > 0 && settings.restSeconds > 0) {
+          remaining -= settings.restSeconds;
+        }
+      } else if (state.currentPhase === TimerPhases.REST) {
+        const remainingSets = settings.totalSets - state.currentSet;
+        remaining += remainingSets * (settings.workSeconds + settings.restSeconds);
+        if (remainingSets > 0 && settings.restSeconds > 0) {
+          remaining -= settings.restSeconds;
+        }
+      }
+
+      return Math.max(0, remaining);
+    }
+
+    // Update overall workout progress bar
+    function updateTotalProgressBar() {
+      const fullWorkoutTime = (settings.workSeconds + settings.restSeconds) * settings.totalSets - (settings.restSeconds > 0 ? settings.restSeconds : 0) + settings.prepSeconds;
+      const remaining = calculateTotalRemaining();
+      const elapsed = Math.max(0, fullWorkoutTime - remaining);
+      const percent = fullWorkoutTime > 0 ? Math.min(100, Math.round((elapsed / fullWorkoutTime) * 100)) : 0;
+
+      elements.totalProgressBar.style.width = `${percent}%`;
+      elements.totalProgressPercent.textContent = `${percent}%`;
+      elements.totalRemainingDisplay.textContent = formatTime(remaining);
+    }
+
+    // Update Theme / Visuals based on current phase (Sophisticated Dark Aesthetics)
+    function updatePhaseTheme() {
+      const phase = state.currentPhase;
+      const circle = elements.progressCircle;
+      const glow = elements.timerGlow;
+      const ambient = elements.ambientGlow;
+      const badge = elements.statusBadge;
+      const statusIcon = elements.statusIcon;
+      const statusDot = elements.statusDot;
+      const totalBar = elements.totalProgressBar;
+
+      // Base badge styling
+      badge.className = 'flex items-center gap-2.5 text-xs font-medium uppercase tracking-[0.35em] transition-all duration-300 ';
+      statusIcon.className = 'w-2 h-2 rounded-full ';
+
+      switch (phase) {
+        case TimerPhases.WORK:
+          elements.phaseLabel.textContent = 'WORK DURATION';
+          elements.phaseLabel.className = 'text-[10px] sm:text-xs font-semibold tracking-[0.25em] text-emerald-400 uppercase mb-1';
+          elements.statusText.textContent = `FOCUS PHASE · ROUND ${state.currentSet}/${settings.totalSets}`;
+          
+          circle.setAttribute('stroke', '#10b981');
+          glow.className = 'absolute w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full bg-emerald-500/15 blur-3xl transition-all duration-700 pointer-events-none';
+          ambient.className = 'fixed inset-0 pointer-events-none transition-colors duration-1000 opacity-20 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/20 via-transparent to-transparent';
+          
+          badge.className += 'text-emerald-400';
+          statusIcon.className += 'bg-emerald-400 shadow-[0_0_10px_#10b981] animate-pulse';
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]';
+          totalBar.className = 'h-full bg-emerald-500 transition-all duration-300 rounded-full';
+          break;
+
+        case TimerPhases.REST:
+          elements.phaseLabel.textContent = 'REST DURATION';
+          elements.phaseLabel.className = 'text-[10px] sm:text-xs font-semibold tracking-[0.25em] text-orange-400 uppercase mb-1';
+          elements.statusText.textContent = `REST PHASE · RECHARGE`;
+          
+          circle.setAttribute('stroke', '#f97316');
+          glow.className = 'absolute w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full bg-orange-500/15 blur-3xl transition-all duration-700 pointer-events-none';
+          ambient.className = 'fixed inset-0 pointer-events-none transition-colors duration-1000 opacity-20 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-500/20 via-transparent to-transparent';
+          
+          badge.className += 'text-orange-400';
+          statusIcon.className += 'bg-orange-400 shadow-[0_0_10px_#f97316]';
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_10px_#f97316]';
+          totalBar.className = 'h-full bg-orange-500 transition-all duration-300 rounded-full';
+          break;
+
+        case TimerPhases.PREP:
+          elements.phaseLabel.textContent = 'GET READY';
+          elements.phaseLabel.className = 'text-[10px] sm:text-xs font-semibold tracking-[0.25em] text-sky-400 uppercase mb-1';
+          elements.statusText.textContent = 'PREPARATION COUNTDOWN';
+          
+          circle.setAttribute('stroke', '#38bdf8');
+          glow.className = 'absolute w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full bg-sky-500/15 blur-3xl transition-all duration-700 pointer-events-none';
+          ambient.className = 'fixed inset-0 pointer-events-none transition-colors duration-1000 opacity-20 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-500/20 via-transparent to-transparent';
+          
+          badge.className += 'text-sky-400';
+          statusIcon.className += 'bg-sky-400 shadow-[0_0_10px_#38bdf8] animate-pulse';
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8]';
+          totalBar.className = 'h-full bg-sky-400 transition-all duration-300 rounded-full';
+          break;
+
+        case TimerPhases.DONE:
+          elements.phaseLabel.textContent = 'SESSION COMPLETE';
+          elements.phaseLabel.className = 'text-[10px] sm:text-xs font-semibold tracking-[0.25em] text-purple-400 uppercase mb-1';
+          elements.statusText.textContent = 'INTERVAL COMPLETED';
+          
+          circle.setAttribute('stroke', '#a855f7');
+          glow.className = 'absolute w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full bg-purple-500/20 blur-3xl transition-all duration-700 pointer-events-none';
+          ambient.className = 'fixed inset-0 pointer-events-none transition-colors duration-1000 opacity-25 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-500/25 via-transparent to-transparent';
+          
+          badge.className += 'text-purple-400';
+          statusIcon.className += 'bg-purple-400 shadow-[0_0_10px_#a855f7]';
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_10px_#a855f7]';
+          totalBar.className = 'h-full bg-purple-500 transition-all duration-300 rounded-full';
+          break;
+
+        case TimerPhases.IDLE:
+        default:
+          elements.phaseLabel.textContent = 'WORK DURATION';
+          elements.phaseLabel.className = 'text-[10px] sm:text-xs font-semibold tracking-[0.25em] text-[#71717a] uppercase mb-1';
+          elements.statusText.textContent = 'FOCUS PHASE';
+          
+          circle.setAttribute('stroke', '#10b981');
+          glow.className = 'absolute w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full bg-emerald-500/10 blur-3xl transition-all duration-700 pointer-events-none';
+          ambient.className = 'fixed inset-0 pointer-events-none transition-colors duration-1000 opacity-15 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/15 via-transparent to-transparent';
+          
+          badge.className += 'text-emerald-400';
+          statusIcon.className += 'bg-emerald-400 shadow-[0_0_10px_#10b981]';
+          statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]';
+          totalBar.className = 'h-full bg-emerald-500 transition-all duration-300 rounded-full';
+          break;
+      }
+    }
+
+    // Update UI Elements
+    function updateUI() {
+      // 1. Text display
+      elements.timerDisplay.textContent = formatTime(state.secondsRemaining);
+      elements.currentSetDisplay.textContent = state.currentSet;
+      elements.totalSetsDisplay.textContent = settings.totalSets;
+
+      // 2. Circular Ring (Precision laser stroke calculation)
+      if (state.phaseTotalSeconds > 0) {
+        const fraction = state.secondsRemaining / state.phaseTotalSeconds;
+        const offset = CIRCLE_CIRCUMFERENCE * (1 - fraction);
+        elements.progressCircle.style.strokeDashoffset = `${offset}`;
+      } else {
+        elements.progressCircle.style.strokeDashoffset = '0';
+      }
+
+      // 3. Play / Pause Button state
+      if (state.isRunning) {
+        elements.iconPlay.classList.add('hidden');
+        elements.iconPause.classList.remove('hidden');
+        elements.playBtnText.textContent = '일시정지';
+      } else {
+        elements.iconPlay.classList.remove('hidden');
+        elements.iconPause.classList.add('hidden');
+        elements.playBtnText.textContent = (state.currentPhase === TimerPhases.IDLE || state.currentPhase === TimerPhases.DONE) ? '시작' : '이어하기';
+      }
+
+      renderSetDots();
+      updateTotalProgressBar();
+      updatePhaseTheme();
+    }
+
+    // Step Transition Handler
+    function advanceTimer() {
+      if (state.secondsRemaining > 0) {
+        state.secondsRemaining--;
+
+        // Sound cues for 3, 2, 1
+        if (state.secondsRemaining <= 3 && state.secondsRemaining > 0) {
+          sound.playCountdownTick();
+        }
+
+        updateUI();
+
+        if (state.secondsRemaining > 0) {
+          return;
+        }
+      }
+
+      // Phase Transition when secondsRemaining === 0
+      if (state.currentPhase === TimerPhases.PREP) {
+        state.currentPhase = TimerPhases.WORK;
+        state.phaseTotalSeconds = settings.workSeconds;
+        state.secondsRemaining = settings.workSeconds;
+        sound.playWorkStart();
+      } else if (state.currentPhase === TimerPhases.WORK) {
+        if (state.currentSet < settings.totalSets) {
+          if (settings.restSeconds > 0) {
+            state.currentPhase = TimerPhases.REST;
+            state.phaseTotalSeconds = settings.restSeconds;
+            state.secondsRemaining = settings.restSeconds;
+            sound.playRestStart();
+          } else {
+            state.currentSet++;
+            state.currentPhase = TimerPhases.WORK;
+            state.phaseTotalSeconds = settings.workSeconds;
+            state.secondsRemaining = settings.workSeconds;
+            sound.playWorkStart();
+          }
+        } else {
+          completeWorkout();
+          return;
+        }
+      } else if (state.currentPhase === TimerPhases.REST) {
+        state.currentSet++;
+        state.currentPhase = TimerPhases.WORK;
+        state.phaseTotalSeconds = settings.workSeconds;
+        state.secondsRemaining = settings.workSeconds;
+        sound.playWorkStart();
+      }
+
+      updateUI();
+    }
+
+    // Complete Workout
+    function completeWorkout() {
+      pauseTimer();
+      state.currentPhase = TimerPhases.DONE;
+      state.secondsRemaining = 0;
+      state.phaseTotalSeconds = 1;
+      sound.playComplete();
+      updateUI();
+    }
+
+    // Start Timer
+    function startTimer() {
+      sound.initContext();
+      if (state.isRunning) return;
+
+      if (state.currentPhase === TimerPhases.DONE || state.currentPhase === TimerPhases.IDLE) {
+        state.currentSet = 1;
+        if (settings.prepSeconds > 0) {
+          state.currentPhase = TimerPhases.PREP;
+          state.phaseTotalSeconds = settings.prepSeconds;
+          state.secondsRemaining = settings.prepSeconds;
+          sound.playCountdownTick();
+        } else {
+          state.currentPhase = TimerPhases.WORK;
+          state.phaseTotalSeconds = settings.workSeconds;
+          state.secondsRemaining = settings.workSeconds;
+          sound.playWorkStart();
+        }
+      }
+
+      state.isRunning = true;
+      state.lastTickTime = performance.now();
+
+      clearInterval(state.timerInterval);
+      state.timerInterval = setInterval(() => {
+        const now = performance.now();
+        const delta = now - state.lastTickTime;
+        if (delta >= 1000) {
+          const skipped = Math.floor(delta / 1000);
+          state.lastTickTime = now - (delta % 1000);
+          for (let i = 0; i < skipped; i++) {
+            if (state.isRunning) {
+              advanceTimer();
+            }
+          }
+        }
+      }, 100);
+
+      updateUI();
+    }
+
+    // Pause Timer
+    function pauseTimer() {
+      state.isRunning = false;
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+      updateUI();
+    }
+
+    // Toggle Play/Pause
+    function togglePlayPause() {
+      if (state.isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    // Reset Timer
+    function resetTimer() {
+      pauseTimer();
+      state.currentPhase = TimerPhases.IDLE;
+      state.currentSet = 1;
+      state.phaseTotalSeconds = settings.workSeconds;
+      state.secondsRemaining = settings.workSeconds;
+      updateUI();
+    }
+
+    // Skip to Previous Set
+    function prevSet() {
+      if (state.currentSet > 1) {
+        state.currentSet--;
+      }
+      state.currentPhase = TimerPhases.WORK;
+      state.phaseTotalSeconds = settings.workSeconds;
+      state.secondsRemaining = settings.workSeconds;
+      updateUI();
+    }
+
+    // Skip to Next Set
+    function nextSet() {
+      if (state.currentSet < settings.totalSets) {
+        state.currentSet++;
+        state.currentPhase = TimerPhases.WORK;
+        state.phaseTotalSeconds = settings.workSeconds;
+        state.secondsRemaining = settings.workSeconds;
+        updateUI();
+      } else {
+        completeWorkout();
+      }
+    }
+
+    // Adjust Settings Handlers
+    function setWorkTime(val) {
+      settings.workSeconds = Math.max(5, Math.min(600, parseInt(val, 10) || 30));
+      elements.sliderWorkTime.value = settings.workSeconds;
+      elements.workTimeLabel.textContent = formatTime(settings.workSeconds);
+      if (!state.isRunning && (state.currentPhase === TimerPhases.IDLE || state.currentPhase === TimerPhases.WORK)) {
+        state.phaseTotalSeconds = settings.workSeconds;
+        state.secondsRemaining = settings.workSeconds;
+        updateUI();
+      } else {
+        updateTotalProgressBar();
+      }
+    }
+
+    function adjustWorkTime(delta) {
+      setWorkTime(settings.workSeconds + delta);
+    }
+
+    function setRestTime(val) {
+      settings.restSeconds = Math.max(0, Math.min(300, parseInt(val, 10) || 15));
+      elements.sliderRestTime.value = settings.restSeconds;
+      elements.restTimeLabel.textContent = formatTime(settings.restSeconds);
+      if (!state.isRunning && state.currentPhase === TimerPhases.REST) {
+        state.phaseTotalSeconds = settings.restSeconds;
+        state.secondsRemaining = settings.restSeconds;
+        updateUI();
+      } else {
+        updateTotalProgressBar();
+      }
+    }
+
+    function adjustRestTime(delta) {
+      setRestTime(settings.restSeconds + delta);
+    }
+
+    function setSets(val) {
+      settings.totalSets = Math.max(1, Math.min(50, parseInt(val, 10) || 5));
+      elements.sliderSets.value = settings.totalSets;
+      elements.setsLabel.textContent = `${settings.totalSets} 세트`;
+      elements.totalSetsDisplay.textContent = settings.totalSets;
+      if (state.currentSet > settings.totalSets) {
+        state.currentSet = settings.totalSets;
+      }
+      renderSetDots();
+      updateTotalProgressBar();
+    }
+
+    function adjustSets(delta) {
+      setSets(settings.totalSets + delta);
+    }
+
+    function setPrepTime(seconds) {
+      settings.prepSeconds = parseInt(seconds, 10) || 0;
+      elements.prepTimeLabel.textContent = `${settings.prepSeconds}초`;
+      
+      document.querySelectorAll('.prep-btn').forEach(btn => {
+        const time = parseInt(btn.getAttribute('data-time'), 10);
+        if (time === settings.prepSeconds) {
+          btn.className = 'prep-btn py-1.5 rounded bg-[#18181b] text-[10px] font-mono font-medium text-sky-400 border border-sky-500/50 btn-press';
+        } else {
+          btn.className = 'prep-btn py-1.5 rounded bg-[#18181b] text-[10px] font-mono font-medium text-[#71717a] border border-transparent hover:border-[#27272a] hover:text-[#fafafa] btn-press';
+        }
+      });
+
+      updateTotalProgressBar();
+    }
+
+    // Apply Quick Presets
+    function applyPreset(work, rest, sets, prep, name) {
+      pauseTimer();
+      setWorkTime(work);
+      setRestTime(rest);
+      setSets(sets);
+      setPrepTime(prep);
+      resetTimer();
+      elements.presetMenu.classList.add('hidden');
+    }
+
+    // Fullscreen Toggle
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn('Fullscreen request denied', err);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Event Listeners Initialization
+    function setupEventListeners() {
+      // Buttons
+      elements.btnPlayPause.addEventListener('click', togglePlayPause);
+      elements.btnReset.addEventListener('click', resetTimer);
+      elements.btnPrevSet.addEventListener('click', prevSet);
+      elements.btnNextSet.addEventListener('click', nextSet);
+      elements.btnFullscreen.addEventListener('click', toggleFullscreen);
+
+      // Sound Toggle
+      elements.btnSoundToggle.addEventListener('click', () => {
+        const muted = sound.toggleMute();
+        if (muted) {
+          elements.iconSoundOn.classList.add('hidden');
+          elements.iconSoundOff.classList.remove('hidden');
+        } else {
+          elements.iconSoundOn.classList.remove('hidden');
+          elements.iconSoundOff.classList.add('hidden');
+          sound.playCountdownTick();
+        }
+      });
+
+      // Preset Menu Toggle
+      elements.btnPresetToggle.addEventListener('click', () => {
+        elements.presetMenu.classList.toggle('hidden');
+      });
+      elements.btnClosePresets.addEventListener('click', () => {
+        elements.presetMenu.classList.add('hidden');
+      });
+
+      // Sliders
+      elements.sliderWorkTime.addEventListener('input', (e) => setWorkTime(e.target.value));
+      elements.sliderRestTime.addEventListener('input', (e) => setRestTime(e.target.value));
+      elements.sliderSets.addEventListener('input', (e) => setSets(e.target.value));
+
+      // Global Keyboard Shortcuts
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+          e.preventDefault();
+          togglePlayPause();
+        } else if ((e.key === 'r' || e.key === 'R' || e.key === 'ㄱ') && e.target.tagName !== 'INPUT') {
+          resetTimer();
+        } else if ((e.key === 'm' || e.key === 'M' || e.key === 'ㅡ') && e.target.tagName !== 'INPUT') {
+          elements.btnSoundToggle.click();
+        }
+      });
+    }
+
+    // Initialize application on load
+    window.addEventListener('DOMContentLoaded', () => {
+      setWorkTime(30);
+      setRestTime(15);
+      setSets(5);
+      setPrepTime(3);
+      resetTimer();
+      setupEventListeners();
+    });
+  </script>
+</body>
+</html>

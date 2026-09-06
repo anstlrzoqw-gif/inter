@@ -1,0 +1,6 @@
+{
+  "name": "미니멀 인터벌 타이머",
+  "description": "운동과 집중을 위한 모던 다크 모드 인터벌 타이머 (HTML 단일 파일 구성)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
